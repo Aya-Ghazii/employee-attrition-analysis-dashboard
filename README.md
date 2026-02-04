@@ -86,12 +86,6 @@ Columns include:
 
 
 
-## 📸 Screenshots
-<img width="1279" height="594" alt="hr 1" src="https://github.com/user-attachments/assets/f64d4e52-e3ff-4a8e-835c-58d400bfdbf2" />
-
-<img width="1291" height="575" alt="hr 2" src="https://github.com/user-attachments/assets/0698f75f-50f1-47ac-b61d-32b4d6521389" />
-
-<img width="1256" height="458" alt="hr 3" src="https://github.com/user-attachments/assets/08bf1eca-680c-4461-b935-aa88b69cc3c2" />
 
 
 
