@@ -29,10 +29,11 @@ This project provides a comprehensive tool for HR departments and data analysts 
 
 ## 📊 Technologies Used
 
-- **Python 3.x**
-- **Streamlit** – for interactive dashboards
+- **Python 3.x** – backend logic, data processing, and analytics
+- **Streamlit** – interactive dashboards
 - **Pandas & NumPy** – data manipulation and processing
 - **Plotly** – interactive and detailed visualizations
+- **HTML, CSS, JavaScript** – frontend structure, styling, and interactivity
 
 ---
 
@@ -82,6 +83,15 @@ Columns include:
 مدة_الخدمة_بالسنوات – Years of service
 
 الراتب_الشهري – Monthly salary
+
+
+
+## 📸 Screenshots
+<img width="1279" height="594" alt="hr 1" src="https://github.com/user-attachments/assets/f64d4e52-e3ff-4a8e-835c-58d400bfdbf2" />
+
+<img width="1291" height="575" alt="hr 2" src="https://github.com/user-attachments/assets/0698f75f-50f1-47ac-b61d-32b4d6521389" />
+
+<img width="1256" height="458" alt="hr 3" src="https://github.com/user-attachments/assets/08bf1eca-680c-4461-b935-aa88b69cc3c2" />
 
 
 
