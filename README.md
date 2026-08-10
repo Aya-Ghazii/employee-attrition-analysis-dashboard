@@ -324,16 +324,4 @@ GitHub: [Aya-Ghazii](https://github.com/Aya-Ghazii)
 
 ---
 
-## 🖼️ Dashboard Screenshots
 
-### 📊 HR Dashboard Overview
-![HR Dashboard Overview](docs/screenshots/dashboard-overview.png?v=2)
-
-### 📈 Attrition Trends & Gender Analysis
-![Attrition Trends](docs/screenshots/attrition-trends.png?v=2)
-
-### 🔍 Resignation Reasons Analysis
-![Resignation Reasons](docs/screenshots/resignation-reasons.png?v=2)
-
-### 📤 Data & Report Export
-![Data Export](docs/screenshots/data-export.png?v=2)
