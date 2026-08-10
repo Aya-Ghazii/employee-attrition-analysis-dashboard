@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحليل ترك الموظفين - Employee Turnover Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --shadow-light: 0 8px 32px rgba(31, 38, 135, 0.37);
+            --shadow-heavy: 0 15px 35px rgba(0, 0, 0, 0.1);
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+            --border-radius: 20px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            line-height: 1.6;
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header Styles */
+        .main-header {
+            background: var(--primary-gradient);
+            padding: 3rem 2rem;
+            border-radius: var(--border-radius);
+            color: white;
+            text-align: center;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-heavy);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .main-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.1;
+        }
+
+        .main-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .main-header h2 {
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .main-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Sidebar Styles */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow-light);
+            border: 1px solid var(--glass-border);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .sidebar h3 {
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .file-upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            transition: var(--transition);
+            margin-bottom: 1.5rem;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .file-upload-area:hover {
+            border-color: #764ba2;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+            transform: translateY(-2px);
+        }
+
+        .file-upload-area::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            transition: var(--transition);
+            opacity: 0;
+        }
+
+        .file-upload-area:hover::before {
+            animation: shimmer 2s infinite;
+            opacity: 1;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: var(--transition);
+            background: white;
+        }
+
+        .file-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e1e8ed;
+        }
+
+        .filter-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 14px;
+            background: white;
+            transition: var(--transition);
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Main Content */
+        .main-content {
+            min-height: 600px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow-light);
+            border: 1px solid var(--glass-border);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary-gradient);
+        }
+
+        .stat-card.male::before {
+            background: var(--accent-gradient);
+        }
+
+        .stat-card.female::before {
+            background: var(--secondary-gradient);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-delta {
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            display: inline-block;
+        }
+
+        /* Chart Containers */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow-light);
+            border: 1px solid var(--glass-border);
+            transition: var(--transition);
+        }
+
+        .chart-container:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chart-canvas {
+            max-height: 400px;
+            width: 100%;
+        }
+
+        /* Analysis Section */
+        .analysis-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow-light);
+            border: 1px solid var(--glass-border);
+            margin-bottom: 2rem;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+
+        .analysis-item h4 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .reason-list {
+            list-style: none;
+        }
+
+        .reason-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f1f3f4;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .reason-list li:last-child {
+            border-bottom: none;
+        }
+
+        .reason-name {
+            flex: 1;
+        }
+
+        .reason-count {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        /* Export Section */
+        .export-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow-light);
+            border: 1px solid var(--glass-border);
+            margin-bottom: 2rem;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.6s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .btn-secondary {
+            background: var(--secondary-gradient);
+            color: white;
+        }
+
+        .btn-accent {
+            background: var(--accent-gradient);
+            color: white;
+        }
+
+        /* Data Table */
+        .data-table-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow-light);
+            border: 1px solid var(--glass-border);
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            text-align: right;
+            border-bottom: 1px solid #e1e8ed;
+        }
+
+        .data-table th {
+            background: var(--primary-gradient);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table tbody tr {
+            transition: var(--transition);
+        }
+
+        .data-table tbody tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        /* Info Messages */
+        .info-message {
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.1) 0%, rgba(155, 89, 182, 0.1) 100%);
+            border: 1px solid rgba(52, 152, 219, 0.3);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-primary);
+            backdrop-filter: blur(10px);
+        }
+
+        .info-icon {
+            font-size: 4rem;
+            color: #3498db;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        /* Instructions */
+        .instructions {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow-light);
+            border: 1px solid var(--glass-border);
+            margin-top: 2rem;
+        }
+
+        .instructions h3 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .instructions ul {
+            list-style: none;
+            padding-right: 1rem;
+        }
+
+        .instructions li {
+            padding: 0.5rem 0;
+            position: relative;
+        }
+
+        .instructions li::before {
+            content: '✓';
+            position: absolute;
+            right: -1rem;
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(102, 126, 234, 0.1);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                position: relative;
+                top: 0;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .main-header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-header h2 {
+                font-size: 1.2rem;
+            }
+        }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .mb-1 { margin-bottom: 1rem; }
+        .mb-2 { margin-bottom: 2rem; }
+        .hidden { display: none; }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="main-header fade-in">
+            <h1>🏢 لوحة تحليل أسباب ترك الموظفين للعمل</h1>
+            <h2>Employee Turnover Analysis Dashboard</h2>
+            <p>تحليل شامل لأسباب استقالة الموظفين حسب الجنس والسنة</p>
+        </div>
+
+        <!-- Dashboard Layout -->
+        <div class="dashboard-layout">
+            <!-- Sidebar -->
+            <div class="sidebar fade-in">
+                <h3><i class="fas fa-cog"></i> إعدادات التحليل</h3>
+                
+                <!-- File Upload -->
+                <div class="file-upload-area" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <p><strong>اختر ملفات Excel</strong></p>
+                    <p>يمكن اختيار عدة ملفات</p>
+                    <input type="file" id="fileInput" class="file-input hidden" multiple accept=".xlsx,.xls">
+                </div>
+                
+                <div id="fileList" class="mb-2"></div>
+                
+                <label>
+                    <input type="checkbox" id="useSampleData" checked> استخدام بيانات تجريبية للعرض
+                </label>
+
+                <!-- Filters -->
+                <div class="filter-section">
+                    <h4><i class="fas fa-filter"></i> المرشحات</h4>
+                    
+                    <div class="filter-group">
+                        <label for="yearFilter">اختر السنة:</label>
+                        <select id="yearFilter" class="filter-select">
+                            <option value="all">الكل</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="genderFilter">اختر الجنس:</label>
+                        <select id="genderFilter" class="filter-select">
+                            <option value="all">الكل</option>
+                        </select>
+                    </div>
+                    
+                    <div id="dataInfo" class="mt-1"></div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <div id="loadingSection" class="loading hidden">
+                    <div class="loading-spinner"></div>
+                </div>
+
+                <div id="dashboardContent" class="hidden">
+                    <!-- Stats Cards -->
+                    <div class="stats-grid fade-in">
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalEmployees">0</div>
+                            <div class="stat-label">إجمالي الموظفين المستقيلين</div>
+                            <div class="stat-delta" id="totalDelta">-</div>
+                        </div>
+                        <div class="stat-card male">
+                            <div class="stat-value" id="maleCount">0</div>
+                            <div class="stat-label">الموظفين الذكور</div>
+                            <div class="stat-delta" id="maleDelta">0%</div>
+                        </div>
+                        <div class="stat-card female">
+                            <div class="stat-value" id="femaleCount">0</div>
+                            <div class="stat-label">الموظفات الإناث</div>
+                            <div class="stat-delta" id="femaleDelta">0%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="yearRange">-</div>
+                            <div class="stat-label">نطاق السنوات</div>
+                            <div class="stat-delta">المدى الزمني</div>
+                        </div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="charts-grid fade-in">
+                        <div class="chart-container">
+                            <div class="chart-title">
+                                <i class="fas fa-chart-pie"></i>
+                                توزيع الاستقالات حسب الجنس
+                            </div>
+                            <canvas id="genderChart" class="chart-canvas"></canvas>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <div class="chart-title">
+                                <i class="fas fa-chart-line"></i>
+                                الاستقالات عبر السنوات
+                            </div>
+                            <canvas id="yearlyChart" class="chart-canvas"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Reasons Analysis -->
+                    <div class="analysis-section fade-in">
+                        <h3><i class="fas fa-search"></i> أسباب ترك العمل</h3>
+                        <div class="charts-grid">
+                            <div class="chart-container">
+                                <div class="chart-title">أهم أسباب الاستقالة</div>
+                                <canvas id="reasonsChart" class="chart-canvas"></canvas>
+                            </div>
+                            
+                            <div class="analysis-grid">
+                                <div class="analysis-item">
+                                    <h4>أهم الأسباب للذكور</h4>
+                                    <ul id="maleReasons" class="reason-list"></ul>
+                                </div>
+                                <div class="analysis-item">
+                                    <h4>أهم الأسباب للإناث</h4>
+                                    <ul id="femaleReasons" class="reason-list"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Export Section -->
+                    <div class="export-section fade-in">
+                        <h3><i class="fas fa-download"></i> تصدير التقرير</h3>
+                        <div class="export-buttons">
+                            <button class="btn btn-primary" id="exportRawBtn">
+                                <i class="fas fa-file-csv"></i>
+                                تصدير البيانات الخام
+                            </button>
+                            <button class="btn btn-secondary" id="exportSummaryBtn">
+                                <i class="fas fa-chart-bar"></i>
+                                تصدير الملخص
+                            </button>
+                            <button class="btn btn-accent" id="exportPdfBtn">
+                                <i class="fas fa-file-pdf"></i>
+                                تصدير تقرير PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Data Table -->
+                    <div class="data-table-container fade-in">
+                        <h3><i class="fas fa-table"></i> البيانات الخام</h3>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <table class="data-table" id="dataTable">
+                                <thead>
+                                    <tr>
+                                        <th>رقم الموظف</th>
+                                        <th>الجنس</th>
+                                        <th>سبب ترك العمل</th>
+                                        <th>السنة</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dataTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Message -->
+                <div id="infoMessage" class="info-message">
+                    <i class="fas fa-info-circle info-icon"></i>
+                    <h3>مرحباً بك في لوحة تحليل ترك الموظفين</h3>
+                    <p>يرجى تحميل ملفات Excel أولاً أو تفعيل البيانات التجريبية من الشريط الجانبي</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="instructions fade-in">
+            <h3><i class="fas fa-book"></i> تعليمات الاستخدام</h3>
+            <div class="analysis-grid">
+                <div>
+                    <h4>📋 تعليمات التحميل:</h4>
+                    <ul>
+                        <li>قم بتحميل ملفات Excel التي تحتوي على بيانات الموظفين</li>
+                        <li>تأكد من وجود الأعمدة التالية في ملفاتك: الجنس، سبب ترك العمل</li>
+                        <li>أسماء الملفات يجب أن تحتوي على السنة (مثل: 2020.xlsx)</li>
+                        <li>الملفات المدعومة: .xlsx, .xls</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>🔧 استكشاف الأخطاء:</h4>
+                    <ul>
+                        <li>تأكد من أن الملف ليس محمي بكلمة مرور</li>
+                        <li>تأكد من أن البيانات في الصف الأول (العناوين)</li>
+                        <li>تأكد من أن أسماء الأعمدة باللغة العربية المدعومة</li>
+                        <li>استخدم البيانات التجريبية لاختبار الوظائف</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentData = [];
+        let filteredData = [];
+        let charts = {};
+
+        // Sample data generator
+        function generateSampleData() {
+            const reasons = [
+                'راتب غير مناسب', 'بيئة عمل سيئة', 'عدم الترقية', 
+                'ساعات عمل طويلة', 'نقل لمكان آخر', 'أسباب شخصية',
+                'عدم الرضا الوظيفي', 'فرصة أفضل', 'مشاكل مع الإدارة'
+            ];
+            const years = [2015, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024];
+            const genders = ['ذكر', 'أنثى'];
+            
+            const data = [];
+            for (let i = 1; i <= 150; i++) {
+                data.push({
+                    Employee_ID: `EMP${String(i).padStart(3, '0')}`,
+                    Gender: genders[Math.floor(Math.random() * genders.length)],
+                    Reason: reasons[Math.floor(Math.random() * reasons.length)],
+                    Year: years[Math.floor(Math.random() * years.length)]
+                });
+            }
+            return data;
+        }
+
+        // Data processing functions
+        function normalizeColumnName(name) {
+            const mappings = {
+                'الجنس': 'Gender',
+                'جنس': 'Gender',
+                'gender': 'Gender',
+                'سبب ترك العمل': 'Reason',
+                'سبب الترك': 'Reason',
+                'السبب': 'Reason',
+                'reason': 'Reason',
+                'السنة': 'Year',
+                'سنة': 'Year',
+                'year': 'Year',
+                'رقم الموظف': 'Employee_ID',
+                'الرقم': 'Employee_ID',
+                'id': 'Employee_ID'
+            };
+            return mappings[name.trim()] || name;
+        }
+
+        function processExcelData(data, filename) {
+            const year = extractYearFromFilename(filename);
+            return data.map(row => {
+                const processed = {};
+                Object.keys(row).forEach(key => {
+                    const normalizedKey = normalizeColumnName(key);
+                    processed[normalizedKey] = row[key];
+                });
+                if (year && !processed.Year) {
+                    processed.Year = year;
+                }
+                return processed;
+            }).filter(row => row.Gender && row.Reason);
+        }
+
+        function extractYearFromFilename(filename) {
+            const yearMatch = filename.match(/(\d{4})/);
+            return yearMatch ? parseInt(yearMatch[1]) : null;
+        }
+
+        // File handling
+        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+        document.getElementById('useSampleData').addEventListener('change', toggleSampleData);
+        
+        async function handleFileUpload(event) {
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
+
+            showLoading();
+            currentData = [];
+            
+            try {
+                for (const file of files) {
+                    const data = await readExcelFile(file);
+                    const processedData = processExcelData(data, file.name);
+                    currentData.push(...processedData);
+                }
+                
+                document.getElementById('useSampleData').checked = false;
+                updateFileList(files);
+                processData();
+                hideLoading();
+            } catch (error) {
+                console.error('Error processing files:', error);
+                alert('خطأ في معالجة الملفات: ' + error.message);
+                hideLoading();
+            }
+        }
+
+        function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[sheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                        resolve(jsonData);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = () => reject(new Error('فشل في قراءة الملف'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function updateFileList(files) {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            
+            if (files.length > 0) {
+                const list = document.createElement('ul');
+                list.style.cssText = 'margin: 1rem 0; padding: 0; list-style: none;';
+                
+                files.forEach(file => {
+                    const item = document.createElement('li');
+                    item.style.cssText = 'padding: 0.5rem; background: #f8f9fa; margin: 0.25rem 0; border-radius: 5px; font-size: 0.9rem;';
+                    item.textContent = `📄 ${file.name}`;
+                    list.appendChild(item);
+                });
+                
+                fileList.appendChild(list);
+            }
+        }
+
+        function toggleSampleData() {
+            const useSample = document.getElementById('useSampleData').checked;
+            if (useSample) {
+                currentData = generateSampleData();
+                processData();
+                document.getElementById('fileList').innerHTML = '<p style="color: #666; font-style: italic;">استخدام البيانات التجريبية</p>';
+            } else {
+                currentData = [];
+                filteredData = [];
+                updateUI();
+                document.getElementById('fileList').innerHTML = '';
+            }
+        }
+
+        // Data processing and filtering
+        function processData() {
+            if (currentData.length === 0) {
+                showInfoMessage();
+                return;
+            }
+
+            filteredData = [...currentData];
+            updateFilters();
+            updateUI();
+            showDashboard();
+        }
+
+        function updateFilters() {
+            const years = [...new Set(currentData.map(d => d.Year))].sort();
+            const genders = [...new Set(currentData.map(d => d.Gender))];
+
+            updateSelectOptions('yearFilter', years.map(y => ({ value: y, text: y })));
+            updateSelectOptions('genderFilter', genders.map(g => ({ value: g, text: g })));
+
+            document.getElementById('yearFilter').addEventListener('change', applyFilters);
+            document.getElementById('genderFilter').addEventListener('change', applyFilters);
+        }
+
+        function updateSelectOptions(selectId, options) {
+            const select = document.getElementById(selectId);
+            const currentValue = select.value;
+            
+            // Clear existing options except "الكل"
+            while (select.children.length > 1) {
+                select.removeChild(select.lastChild);
+            }
+            
+            options.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option.value;
+                optionElement.textContent = option.text;
+                select.appendChild(optionElement);
+            });
+            
+            if (options.some(opt => opt.value == currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
+        function applyFilters() {
+            const yearFilter = document.getElementById('yearFilter').value;
+            const genderFilter = document.getElementById('genderFilter').value;
+
+            filteredData = currentData.filter(item => {
+                const yearMatch = yearFilter === 'all' || item.Year == yearFilter;
+                const genderMatch = genderFilter === 'all' || item.Gender === genderFilter;
+                return yearMatch && genderMatch;
+            });
+
+            updateUI();
+        }
+
+        // UI Updates
+        function updateUI() {
+            updateStats();
+            updateCharts();
+            updateDataTable();
+            updateDataInfo();
+        }
+
+        function updateStats() {
+            const total = filteredData.length;
+            const maleCount = filteredData.filter(d => d.Gender === 'ذكر').length;
+            const femaleCount = filteredData.filter(d => d.Gender === 'أنثى').length;
+
+            const malePercentage = total > 0 ? ((maleCount / total) * 100).toFixed(1) : 0;
+            const femalePercentage = total > 0 ? ((femaleCount / total) * 100).toFixed(1) : 0;
+
+            const years = [...new Set(filteredData.map(d => d.Year))].sort();
+            const yearRange = years.length > 1 ? `${years[0]} - ${years[years.length - 1]}` : years[0] || '-';
+
+            document.getElementById('totalEmployees').textContent = total;
+            document.getElementById('maleCount').textContent = maleCount;
+            document.getElementById('femaleCount').textContent = femaleCount;
+            document.getElementById('yearRange').textContent = yearRange;
+            
+            document.getElementById('maleDelta').textContent = `${malePercentage}%`;
+            document.getElementById('femaleDelta').textContent = `${femalePercentage}%`;
+            document.getElementById('totalDelta').textContent = `${years.length} سنة`;
+        }
+
+        function updateCharts() {
+            createGenderChart();
+            createYearlyChart();
+            createReasonsChart();
+            updateReasonsAnalysis();
+        }
+
+        function createGenderChart() {
+            const ctx = document.getElementById('genderChart').getContext('2d');
+            
+            if (charts.gender) {
+                charts.gender.destroy();
+            }
+
+            const maleCount = filteredData.filter(d => d.Gender === 'ذكر').length;
+            const femaleCount = filteredData.filter(d => d.Gender === 'أنثى').length;
+
+            charts.gender = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['ذكر', 'أنثى'],
+                    datasets: [{
+                        data: [maleCount, femaleCount],
+                        backgroundColor: [
+                            'rgba(79, 172, 254, 0.8)',
+                            'rgba(240, 147, 251, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(79, 172, 254, 1)',
+                            'rgba(240, 147, 251, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 14
+                                },
+                                padding: 20
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createYearlyChart() {
+            const ctx = document.getElementById('yearlyChart').getContext('2d');
+            
+            if (charts.yearly) {
+                charts.yearly.destroy();
+            }
+
+            const yearData = {};
+            filteredData.forEach(item => {
+                const year = item.Year;
+                if (!yearData[year]) {
+                    yearData[year] = { ذكر: 0, أنثى: 0 };
+                }
+                yearData[year][item.Gender]++;
+            });
+
+            const years = Object.keys(yearData).sort();
+            const maleData = years.map(year => yearData[year]['ذكر'] || 0);
+            const femaleData = years.map(year => yearData[year]['أنثى'] || 0);
+
+            charts.yearly = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [
+                        {
+                            label: 'ذكر',
+                            data: maleData,
+                            borderColor: 'rgba(79, 172, 254, 1)',
+                            backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'أنثى',
+                            data: femaleData,
+                            borderColor: 'rgba(240, 147, 251, 1)',
+                            backgroundColor: 'rgba(240, 147, 251, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function createReasonsChart() {
+            const ctx = document.getElementById('reasonsChart').getContext('2d');
+            
+            if (charts.reasons) {
+                charts.reasons.destroy();
+            }
+
+            const reasonCount = {};
+            filteredData.forEach(item => {
+                reasonCount[item.Reason] = (reasonCount[item.Reason] || 0) + 1;
+            });
+
+            const sortedReasons = Object.entries(reasonCount)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 8);
+
+            const colors = [
+                'rgba(102, 126, 234, 0.8)',
+                'rgba(118, 75, 162, 0.8)',
+                'rgba(79, 172, 254, 0.8)',
+                'rgba(240, 147, 251, 0.8)',
+                'rgba(245, 87, 108, 0.8)',
+                'rgba(52, 152, 219, 0.8)',
+                'rgba(155, 89, 182, 0.8)',
+                'rgba(46, 204, 113, 0.8)'
+            ];
+
+            charts.reasons = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedReasons.map(([reason]) => reason),
+                    datasets: [{
+                        label: 'عدد الحالات',
+                        data: sortedReasons.map(([, count]) => count),
+                        backgroundColor: colors,
+                        borderColor: colors.map(color => color.replace('0.8', '1')),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateReasonsAnalysis() {
+            const maleData = filteredData.filter(d => d.Gender === 'ذكر');
+            const femaleData = filteredData.filter(d => d.Gender === 'أنثى');
+
+            updateReasonsList('maleReasons', maleData);
+            updateReasonsList('femaleReasons', femaleData);
+        }
+
+        function updateReasonsList(elementId, data) {
+            const reasonCount = {};
+            data.forEach(item => {
+                reasonCount[item.Reason] = (reasonCount[item.Reason] || 0) + 1;
+            });
+
+            const sortedReasons = Object.entries(reasonCount)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 5);
+
+            const list = document.getElementById(elementId);
+            list.innerHTML = '';
+
+            sortedReasons.forEach(([reason, count]) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span class="reason-name">${reason}</span>
+                    <span class="reason-count">${count}</span>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function updateDataTable() {
+            const tbody = document.getElementById('dataTableBody');
+            tbody.innerHTML = '';
+
+            filteredData.slice(0, 100).forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.Employee_ID || '-'}</td>
+                    <td>${item.Gender}</td>
+                    <td>${item.Reason}</td>
+                    <td>${item.Year}</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            if (filteredData.length > 100) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="4" style="text-align: center; color: #666; font-style: italic;">... و ${filteredData.length - 100} صف آخر</td>`;
+                tbody.appendChild(row);
+            }
+        }
+
+        function updateDataInfo() {
+            const info = document.getElementById('dataInfo');
+            info.innerHTML = `
+                <div style="background: #f8f9fa; padding: 1rem; border-radius: 10px; margin-top: 1rem;">
+                    <strong>معلومات البيانات:</strong><br>
+                    عدد السجلات: ${filteredData.length}<br>
+                    السنوات: ${[...new Set(filteredData.map(d => d.Year))].sort().join(', ')}<br>
+                    آخر تحديث: ${new Date().toLocaleDateString('ar-SA')}
+                </div>
+            `;
+        }
+
+        // UI State Management
+        function showLoading() {
+            document.getElementById('loadingSection').classList.remove('hidden');
+            document.getElementById('dashboardContent').classList.add('hidden');
+            document.getElementById('infoMessage').classList.add('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingSection').classList.add('hidden');
+        }
+
+        function showDashboard() {
+            document.getElementById('dashboardContent').classList.remove('hidden');
+            document.getElementById('infoMessage').classList.add('hidden');
+        }
+
+        function showInfoMessage() {
+            document.getElementById('infoMessage').classList.remove('hidden');
+            document.getElementById('dashboardContent').classList.add('hidden');
+        }
+
+        // Export Functions
+        document.getElementById('exportRawBtn').addEventListener('click', exportRawData);
+        document.getElementById('exportSummaryBtn').addEventListener('click', exportSummary);
+        document.getElementById('exportPdfBtn').addEventListener('click', exportPDF);
+
+        function exportRawData() {
+            const csv = convertToCSV(filteredData);
+            downloadFile(csv, 'employee_turnover_raw_data.csv', 'text/csv');
+        }
+
+        function exportSummary() {
+            const summary = generateSummaryData();
+            const csv = convertToCSV(summary);
+            downloadFile(csv, 'employee_turnover_summary.csv', 'text/csv');
+        }
+
+        function generateSummaryData() {
+            const yearStats = {};
+            
+            filteredData.forEach(item => {
+                const year = item.Year;
+                if (!yearStats[year]) {
+                    yearStats[year] = { Year: year, Male: 0, Female: 0, Total: 0, Reasons: {} };
+                }
+                
+                yearStats[year][item.Gender === 'ذكر' ? 'Male' : 'Female']++;
+                yearStats[year].Total++;
+                
+                yearStats[year].Reasons[item.Reason] = (yearStats[year].Reasons[item.Reason] || 0) + 1;
+            });
+
+            return Object.values(yearStats).map(stat => ({
+                Year: stat.Year,
+                'Total Resignations': stat.Total,
+                'Male Resignations': stat.Male,
+                'Female Resignations': stat.Female,
+                'Top Reason': Object.entries(stat.Reasons).sort(([,a], [,b]) => b - a)[0]?.[0] || '-'
+            }));
+        }
+
+        function convertToCSV(data) {
+            if (data.length === 0) return '';
+            
+            const headers = Object.keys(data[0]);
+            const csvContent = [
+                headers.join(','),
+                ...data.map(row => headers.map(header => `"${row[header] || ''}"`).join(','))
+            ].join('\n');
+            
+            return '\ufeff' + csvContent; // Add BOM for Arabic support
+        }
+
+        function downloadFile(content, filename, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        function exportPDF() {
+            // Simple PDF export using browser print
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Employee Turnover Report</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; direction: rtl; }
+                        .header { text-align: center; margin-bottom: 30px; }
+                        .stats { display: flex; justify-content: space-around; margin: 20px 0; }
+                        .stat-item { text-align: center; }
+                        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+                        th { background-color: #f2f2f2; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>تقرير تحليل ترك الموظفين</h1>
+                        <p>تاريخ التقرير: ${new Date().toLocaleDateString('ar-SA')}</p>
+                    </div>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <h3>${filteredData.length}</h3>
+                            <p>إجمالي الاستقالات</p>
+                        </div>
+                        <div class="stat-item">
+                            <h3>${filteredData.filter(d => d.Gender === 'ذكر').length}</h3>
+                            <p>الذكور</p>
+                        </div>
+                        <div class="stat-item">
+                            <h3>${filteredData.filter(d => d.Gender === 'أنثى').length}</h3>
+                            <p>الإناث</p>
+                        </div>
+                    </div>
+                    ${generatePDFTable()}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function generatePDFTable() {
+            const reasonCount = {};
+            filteredData.forEach(item => {
+                reasonCount[item.Reason] = (reasonCount[item.Reason] || 0) + 1;
+            });
+
+            const sortedReasons = Object.entries(reasonCount).sort(([,a], [,b]) => b - a);
+
+            return `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>سبب ترك العمل</th>
+                            <th>عدد الحالات</th>
+                            <th>النسبة المئوية</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sortedReasons.map(([reason, count]) => `
+                            <tr>
+                                <td>${reason}</td>
+                                <td>${count}</td>
+                                <td>${((count / filteredData.length) * 100).toFixed(1)}%</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Initialize with sample data
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (document.getElementById('useSampleData').checked) {
+                    toggleSampleData();
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

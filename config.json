@@ -1,0 +1,27 @@
+{
+  "system_settings": {
+    "default_language": "arabic",
+    "timezone": "Asia/Riyadh",
+    "date_format": "%Y-%m-%d",
+    "currency": "SAR"
+  },
+  "model_settings": {
+    "retrain_frequency": "monthly",
+    "prediction_horizon": 12,
+    "confidence_threshold": 0.7
+  },
+  "dashboard_settings": {
+    "auto_refresh": true,
+    "refresh_interval": 3600,
+    "export_formats": [
+      "pdf",
+      "excel",
+      "csv"
+    ]
+  },
+  "arabic_support": {
+    "rtl_support": true,
+    "font_family": "Tahoma",
+    "encoding": "utf-8"
+  }
+}
